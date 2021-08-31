@@ -1,0 +1,23 @@
+body {
+    background-color: rgb(48, 142, 56);
+}
+
+@media (min-width: 1000px) {
+    #parent {
+        display: flex;
+    }
+    #pic_viewer {
+        flex-grow: 1;
+    }
+    #pic_viewer img {
+        text-align: center;
+        max-height: 75vw;
+        max-width: 75vw;
+        height: auto;
+        width: auto;
+    }
+    #pic_info {
+        flex-grow: 1;
+        text-align: left;
+    }
+}
