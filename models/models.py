@@ -39,7 +39,7 @@ class PictureData(object):
         if in_id is None:
             # IDを付与する
             _hash = Hashids(min_length=ID_LENGTH, salt=salt)
-            hashid = _hash.encode(int.from_bytes(path.encode(), 'big'))
+            hashid = _hash.encode(int.from_bytes(title.encode(), 'big'))
             id = hashid[:ID_LENGTH]
 
         # 情報を登録する
@@ -86,3 +86,24 @@ class PictureData(object):
 
     def get_info(self):
         return self.pic_data[PIC_INFO]
+
+    def convert_tag_list(self):
+        return_dict ={}
+
+        return_dict[PIC_ID] = self.pic_data[PIC_ID]
+        return_dict[PIC_PATH] = self.pic_data[PIC_PATH]
+        return_dict[PIC_TITLE] = self.pic_data[PIC_TITLE]
+        return_dict[PIC_TAG] = list(self.pic_data[PIC_TAG])
+        return_dict[PIC_STAR] = self.pic_data[PIC_STAR]
+        return_dict[PIC_INFO] = self.pic_data[PIC_INFO]
+
+        return return_dict
+
+def convert_tag_set(data:dict):
+    r_data = PictureData(in_id=data[PIC_ID],
+                         path=data[PIC_PATH],
+                         title=data[PIC_TITLE],
+                         tags=set(data[PIC_TAG]),
+                         star=data[PIC_STAR],
+                         info=data[PIC_INFO])
+    return r_data

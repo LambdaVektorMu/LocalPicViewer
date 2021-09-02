@@ -6,15 +6,57 @@
         <link href="/static/css/style.css" rel="stylesheet" type="text/css" />
     </head>
     <body>
-        <h3>画像タイトル</h3>
+        <!-- 画像のタイトル -->
+        <h3>タイトル:{{pic_data.title}}</h3>
+        <form action="/upload_title" method="POST">
+            <input type="text" name="title" placeholder="タイトル" style="width:500px;" required>
+            <input type="submit" value="upload" >
+        </form>
         <div id="parent">
+            <!-- 画像表示部分 -->
             <div id="pic_viewer">
-                <img src="/static/images/og.png">
+                <img src="{{pic_data.pic_path}}">
             </div>
+
+            <!-- 画像の情報表示部分 -->
             <div id="pic_info">
+                <!-- タグ -->
                 <h4>タグ</h4>
+                {% for tag in pic_data.tags %}
+                <input type="checkbox" name="delete_tag" form="delete_tag" value="{{tag}}">
+                {{tag}}
+                {% endfor %}
+                <form action="/add_tags" method="POST">
+                    <input type="text" name="tags" placeholder="タグ" style="width:200px;" required>
+                    <input type="submit" value="add tags">
+                </form>
+                <form action="/delete_tag" method="POST" id="delete_tag">
+                    <input type="submit" value="delete tag">
+                </form>
+
+                <!-- 好き度 -->
                 <h4>好き度</h4>
+                ☆:{{pic_data.rating}}
+                <form action="/upload_rating" method="POST">
+                    <select name="rating" required>
+                        <option value="">-</option>
+                        <option value=0>0</option>
+                        <option value=1>1</option>
+                        <option value=2>2</option>
+                        <option value=3>3</option>
+                        <option value=4>4</option>
+                        <option value=5>5</option>
+                    </select>
+                    <input type="submit" value="upload">
+                </form>
+
+                <!-- その他テキスト情報 -->
                 <h4>メモ</h4>
+                <pre>{{pic_data.information}}</pre>
+                <form action="/upload_info" method="POST">
+                    <textarea name="information" required></textarea>
+                    <input type="submit" value="upload">
+                </form>
             </div>
         </div>
     </body>

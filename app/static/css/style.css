@@ -11,8 +11,8 @@ body {
     }
     #pic_viewer img {
         text-align: center;
-        max-height: 75vw;
-        max-width: 75vw;
+        max-height: 60vw;
+        max-width: 60vw;
         height: auto;
         width: auto;
     }
