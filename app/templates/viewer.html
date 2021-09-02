@@ -24,7 +24,7 @@
                 <h4>タグ</h4>
                 {% for tag in pic_data.tags %}
                 <input type="checkbox" name="delete_tag" form="delete_tag" value="{{tag}}">
-                {{tag}}
+                {{tag}}<br>
                 {% endfor %}
                 <form action="/add_tags" method="POST">
                     <input type="text" name="tags" placeholder="タグ" style="width:200px;" required>

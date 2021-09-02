@@ -44,18 +44,24 @@ class DBPicData(object):
     # 画像データのタイトル更新
     def upload_pic_title(self, id:str, title:str):
         filter_id = {PIC_ID:id}
-        update_title = {'$set':{PIC_TITLE:title}}
+        update_title = {'$set': {PIC_TITLE:title}}
         return self.collection.update_one(filter_id, update_title)
 
     # 画像データの評価更新
     def upload_pic_star(self, id:str, star:int):
         filter_id = {PIC_ID:id}
-        update_star = {'$set':{PIC_STAR:star}}
+        update_star = {'$set': {PIC_STAR:star}}
         return self.collection.update_one(filter_id, update_star)
 
     # 画像データのその他情報を更新
     def upload_pic_info(self, id:str, info:str):
         if len(info) <= INFO_LENGTH:
             filter_id = {PIC_ID:id}
-            update_info = {'$set':{PIC_INFO:info}}
+            update_info = {'$set': {PIC_INFO:info}}
             return self.collection.update_one(filter_id, update_info)
+
+    # 画像データのタグ情報を更新
+    def upload_pic_tags(self, id:str, tags:set):
+        filter_id = {PIC_ID:id}
+        update_tags = {'$set': {PIC_TAG:list(tags)}}
+        return self.collection.update_one(filter_id, update_tags)

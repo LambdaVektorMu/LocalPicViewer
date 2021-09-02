@@ -4,6 +4,7 @@ from flask import Flask, render_template, request, redirect, url_for, session
 from models.models import *
 from models.database import *
 import configparser
+import re
 
 config = configparser.ConfigParser()
 config.read('config.ini')
@@ -44,4 +45,38 @@ def upload_info():
     if db_pdata.search_id_pic_data(session[PIC_ID]):
         input_info = request.form[PIC_INFO]
         db_pdata.upload_pic_info(session[PIC_ID], input_info)
+        return redirect(url_for('view_pic', pic_id=session[PIC_ID]))
+
+@app.route('/delete_tag', methods=['POST'])
+def delete_tags():
+    if db_pdata.search_id_pic_data(session[PIC_ID]):
+        p_data = db_pdata.load_pic_data(session[PIC_ID])
+
+        # 選択したタグを削除したタグセットを作成する
+        tag_list = request.form.getlist('delete_tag')
+        set_del_tag = set(tag_list)
+        new_tags = p_data.get_tags() - set_del_tag
+
+        if len(list(new_tags)) == 0:
+            new_tags = TAG_ZERO
+
+        db_pdata.upload_pic_tags(session[PIC_ID], new_tags)
+
+        return redirect(url_for('view_pic', pic_id=session[PIC_ID]))
+
+@app.route('/add_tags', methods=['POST'])
+def add_tags():
+    if db_pdata.search_id_pic_data(session[PIC_ID]):
+        p_data = db_pdata.load_pic_data(session[PIC_ID])
+        old_tags = p_data.get_tags()
+        old_tags.discard('未設定')
+
+        # 入力されたタグを加えたセットを作成する
+        input_tags = set(re.split(' |,', request.form[PIC_TAG])) - {''}
+        new_tags = p_data.get_tags() | input_tags
+        if len(list(new_tags)) == 0:
+            new_tags = TAG_ZERO
+
+        db_pdata.upload_pic_tags(session[PIC_ID], new_tags)
+
         return redirect(url_for('view_pic', pic_id=session[PIC_ID]))
