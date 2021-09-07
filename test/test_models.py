@@ -5,11 +5,17 @@ from models.models import *
 import configparser
 from copy import deepcopy
 
+# === 初期設定 ===============================================
 config = configparser.ConfigParser()
 config.read('config.ini')
 salt = config.get('LocalPicViewer', 'salt')
 _hash = Hashids(min_length=ID_LENGTH, salt=salt)
 
+# === テストデータ ============================================
+# 何も設定していない場合
+testdata_0 = PictureData()
+
+# シリーズの設定をしてないケース
 PATH1 = '/static/images/nas_pic/SobaCha/EgFQ_giU0AA05rd.jpg'
 seed_hash = ''.join(list(reversed(PATH1)))
 hashid = _hash.encode(int.from_bytes(seed_hash.encode(), 'big'))
@@ -18,7 +24,13 @@ TITLE1 = 'test_data_no'
 TAGS1 = {'tag'}
 STAR1 = 3
 INFO1 = 'test'
+testdata_no_series = PictureData(path=PATH1,
+                                 title=TITLE1,
+                                 tags=TAGS1,
+                                 star=STAR1,
+                                 info=INFO1)
 
+# シリーズの設定をしているケース
 PATH2 = '/static/images/nas_pic/SobaCha/EQspibEVAAAFiIT.jpg'
 seed_hash = ''.join(list(reversed(PATH2)))
 hashid = _hash.encode(int.from_bytes(seed_hash.encode(), 'big'))
@@ -29,16 +41,6 @@ STAR2 = 5
 INFO2 = 'とても楽しいテスト'
 SERIES_TITLE2 = '楽しいテスト'
 SERIES_PAGE2 = 1
-
-testdata_0 = PictureData()      # 何も設定していない場合
-id1_path0 = PictureData(in_id=ID1)
-id1_path2 = PictureData(in_id=ID1, path=PATH2)
-testdata_no_series = PictureData(path=PATH1,
-                                 title=TITLE1,
-                                 tags=TAGS1,
-                                 star=STAR1,
-                                 info=INFO1)
-
 testdata_series = PictureData(path=PATH2,
                               title=TITLE2,
                               tags=TAGS2,
@@ -47,6 +49,12 @@ testdata_series = PictureData(path=PATH2,
                               series_title=SERIES_TITLE2,
                               series_page=SERIES_PAGE2)
 
+# ID無 PATH無
+id1_path0 = PictureData(in_id=ID1)
+# ID有 PATH有
+id1_path2 = PictureData(in_id=ID1, path=PATH2)
+
+# === テストケース ============================================
 # ID有無×PATH有無の4通り
 def test_get_id():
     # ID無 PATH無
