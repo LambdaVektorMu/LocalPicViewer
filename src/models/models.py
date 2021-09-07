@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # データベースのテーブルカラム情報を定義する
 
+from copy import deepcopy
 from hashids import Hashids
 import configparser
 
@@ -13,6 +14,7 @@ PIC_ID = '_id'              # ID
 PIC_PATH = 'pic_path'       # その画像の（相対）パス
 PIC_TITLE = 'title'         # その画像の独自タイトル
 PIC_TAG = 'tags'            # タグ
+PIC_TAG_LIST = 'tags_list'  # タグのリスト化
 PIC_STAR = 'rating'         # その画像に対する評判
 PIC_INFO = 'information'    # 画像のその他情報
 PIC_SID = 'series_id'       # 画像の作品群のユニークID
@@ -36,40 +38,38 @@ _hash = Hashids(min_length=ID_LENGTH, salt=salt)
 
 
 class PictureData(object):
-    pic_data = {}
 
     def __init__(self,
-                 in_id:str=None,
+                 in_id:str=ID_ZERO,
                  path:str='',
                  title:str='',
                  tags:set=TAG_ZERO,
                  star:int=STAR_ZERO,
                  info:str='',
-                 sid:str=None,
                  series_title:str='',
-                 series_page:int=SERIES_NONE_PAGE) -> None:
-        super().__init__()
+                 series_page:int=SERIES_NONE_PAGE):
+        self.pic_data = {}
 
         id = in_id
-        if in_id is None:
+        if in_id == ID_ZERO and path != '':
             # IDを付与する
             seed_hash = ''.join(list(reversed(path)))
             hashid = _hash.encode(int.from_bytes(seed_hash.encode(), 'big'))
             id = hashid[:ID_LENGTH]
 
-        series_id = sid
-        if sid is None:
-            if series_title == '':
-                series_id = SERIES_NONE_ID
-            else:
-                hash_sid = _hash.encode(int.from_bytes(series_title.encode(), 'little'))
-                series_id = hash_sid[:ID_LENGTH]
+        # シリーズタイトルに合わせてシリーズIDを修正する
+        if series_title == '':
+            series_id = SERIES_NONE_ID
+        else:
+            hash_sid = _hash.encode(int.from_bytes(series_title.encode(), 'little'))
+            series_id = hash_sid[:ID_LENGTH]
 
         # 情報を登録する
         self.pic_data[PIC_ID] = id
         self.pic_data[PIC_PATH] = path
         self.pic_data[PIC_TITLE] = title
         self.pic_data[PIC_TAG] = tags
+        self.pic_data[PIC_TAG_LIST] = sorted(list(tags))
         self.pic_data[PIC_STAR] = star
         self.pic_data[PIC_INFO] = info
         self.pic_data[PIC_SID] = series_id
@@ -97,9 +97,13 @@ class PictureData(object):
 
     def set_tags(self, in_tags:set):
         self.pic_data[PIC_TAG] = in_tags
+        self.pic_data[PIC_TAG_LIST] = sorted(list(in_tags))
 
     def get_tags(self):
         return self.pic_data[PIC_TAG]
+
+    def get_tags_list(self):
+        return self.pic_data[PIC_TAG_LIST]
 
     def set_star(self, in_star:int):
         if in_star >= 0 and in_star <= 5: self.pic_data[PIC_STAR] = in_star
@@ -113,12 +117,17 @@ class PictureData(object):
     def get_info(self):
         return self.pic_data[PIC_INFO]
 
-    def set_series(self, in_series_title:str):
+    def set_series(self, in_series_title:str=''):
         self.pic_data[PIC_SERIES] = in_series_title
 
         # シリーズタイトルに合わせてシリーズIDを修正する
-        hash_sid = _hash.encode(int.from_bytes(in_series_title.encode(), 'little'))
-        self.pic_data[PIC_SID] = hash_sid[:ID_LENGTH]
+        if in_series_title == '':
+            series_id = SERIES_NONE_ID
+        else:
+            hash_sid = _hash.encode(int.from_bytes(in_series_title.encode(), 'little'))
+            series_id = hash_sid[:ID_LENGTH]
+
+        self.pic_data[PIC_SID] = series_id
 
     def get_series(self):
         return {PIC_SID: self.pic_data[PIC_SID],
@@ -130,29 +139,10 @@ class PictureData(object):
     def get_page(self):
         return self.pic_data[PIC_SPAGE]
 
-    def convert_tag_list(self):
-        return_dict ={}
+    def return_pic_data(self):
+        return deepcopy(self.pic_data)
 
-        return_dict[PIC_ID] = self.pic_data[PIC_ID]
-        return_dict[PIC_PATH] = self.pic_data[PIC_PATH]
-        return_dict[PIC_TITLE] = self.pic_data[PIC_TITLE]
-        return_dict[PIC_TAG] = list(self.pic_data[PIC_TAG])
-        return_dict[PIC_STAR] = self.pic_data[PIC_STAR]
-        return_dict[PIC_INFO] = self.pic_data[PIC_INFO]
-        return_dict[PIC_SID] = self.pic_data[PIC_SID]
-        return_dict[PIC_SERIES] = self.pic_data[PIC_SERIES]
-        return_dict[PIC_SPAGE] = self.pic_data[PIC_SPAGE]
-
-        return return_dict
-
-def convert_tag_set(data:dict):
-    r_data = PictureData(in_id=data[PIC_ID],
-                         path=data[PIC_PATH],
-                         title=data[PIC_TITLE],
-                         tags=set(data[PIC_TAG]),
-                         star=data[PIC_STAR],
-                         info=data[PIC_INFO],
-                         sid=data[PIC_SID],
-                         series_title=data[PIC_SERIES],
-                         series_page=data[PIC_SPAGE])
-    return r_data
+    def return_pic_data_noset(self):
+        return_data = deepcopy(self.pic_data)
+        del return_data[PIC_TAG]
+        return return_data
