@@ -10,7 +10,7 @@
         <h3>タイトル:{{pic_data.title}}</h3>
         <form action="/upload_title" method="POST">
             <input type="text" name="title" placeholder="タイトル" style="width:500px;" required>
-            <input type="submit" value="upload" >
+            <input type="submit" value="タイトル更新" >
         </form>
         <div id="parent">
             <!-- 画像表示部分 -->
@@ -28,10 +28,10 @@
                 {% endfor %}
                 <form action="/add_tags" method="POST">
                     <input type="text" name="tags" placeholder="タグ" style="width:200px;" required>
-                    <input type="submit" value="add tags">
+                    <input type="submit" value="タグ追加">
                 </form>
                 <form action="/delete_tag" method="POST" id="delete_tag">
-                    <input type="submit" value="delete tag">
+                    <input type="submit" value="タグ削除">
                 </form>
 
                 <!-- 好き度 -->
@@ -47,7 +47,7 @@
                         <option value=4>4</option>
                         <option value=5>5</option>
                     </select>
-                    <input type="submit" value="upload">
+                    <input type="submit" value="好き度更新">
                 </form>
 
                 <!-- その他テキスト情報 -->
@@ -55,7 +55,7 @@
                 <pre>{{pic_data.information}}</pre>
                 <form action="/upload_info" method="POST">
                     <textarea name="information" required></textarea>
-                    <input type="submit" value="upload">
+                    <input type="submit" value="その他情報更新">
                 </form>
             </div>
         </div>

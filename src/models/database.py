@@ -20,7 +20,10 @@ class DBPicData(object):
             PIC_TITLE: pdata.pic_data[PIC_TITLE],
             PIC_TAG: list(pdata.pic_data[PIC_TAG]),
             PIC_STAR: pdata.pic_data[PIC_STAR],
-            PIC_INFO: pdata.pic_data[PIC_INFO]
+            PIC_INFO: pdata.pic_data[PIC_INFO],
+            PIC_SID: pdata.pic_data[PIC_SID],
+            PIC_SERIES: pdata.pic_data[PIC_SERIES],
+            PIC_SPAGE: pdata.pic_data[PIC_SPAGE]
         }
         return self.collection.insert_one(insert_data)
 
@@ -32,12 +35,15 @@ class DBPicData(object):
                             title=db_data[PIC_TITLE],
                             tags=set(db_data[PIC_TAG]),
                             star=db_data[PIC_STAR],
-                            info=db_data[PIC_INFO])
+                            info=db_data[PIC_INFO],
+                            sid=db_data[PIC_SID],
+                            series_title=db_data[PIC_SERIES],
+                            series_page=db_data[PIC_SPAGE])
 
         return pdata
 
     # IDがDBに既に登録されているか確認
-    def search_id_pic_data(self, id:str):
+    def is_id_in_pic_data(self, id:str):
         is_data = self.collection.find_one(filter={PIC_ID:id})
         return is_data is not None
 
@@ -65,3 +71,16 @@ class DBPicData(object):
         filter_id = {PIC_ID:id}
         update_tags = {'$set': {PIC_TAG:list(tags)}}
         return self.collection.update_one(filter_id, update_tags)
+
+    def search_db_by_tags(self, tags:set={}, sort:str=None):
+        tag_list = list(tags)
+
+        if len(tag_list) == 0:
+            filter = None
+        elif len(tag_list) == 1:
+            filter = {PIC_TAG: tag_list[0]}
+        else:
+            filter_tags = [{PIC_TAG: tag} for tag in tag_list]
+            filter = {'$and': filter_tags}
+
+        return self.collection.find(filter=filter)
