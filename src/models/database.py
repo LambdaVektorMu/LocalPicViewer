@@ -5,38 +5,49 @@ from pymongo import MongoClient
 from models.models import *
 
 
-class DBPicData(object):
-    def __init__(self, db_name, collection_name) -> None:
+class DBSeriesData(object):
+    def __init__(self) -> None:
         super().__init__()
         self.client = MongoClient()
-        self.db = self.client[db_name]
-        self.collection = self.db.get_collection(collection_name)
+        self.db = self.client[LPVDB]
+        self.collection = self.db.get_collection(COL_SDATA)
+
+    def save_series_data(self, sid:str, series_title:str):
+        return self.collection.insert_one({PIC_ID:sid, PIC_SERIES:series_title})
+
+    def load_series_data(self, sid:str):
+        db_data = self.collection.find_one(filter={PIC_ID:sid})
+        return {PIC_SID: db_data[PIC_ID], PIC_SERIES: db_data[PIC_SERIES]}
+
+    def is_id_in_series(self, sid:str) -> bool:
+        db_data = self.collection.find_one(filter={PIC_ID:sid})
+        return db_data is not None
+
+class DBPicData(object):
+    def __init__(self) -> None:
+        super().__init__()
+        self.client = MongoClient()
+        self.db = self.client[LPVDB]
+        self.collection = self.db.get_collection(COL_PDATA)
+        self.series_db = DBSeriesData()
 
     # 1画像のデータを登録
     def save_pic_data(self, pdata:PictureData):
-        insert_data = {
-            PIC_ID: pdata.pic_data[PIC_ID],
-            PIC_PATH: pdata.pic_data[PIC_PATH],
-            PIC_TITLE: pdata.pic_data[PIC_TITLE],
-            PIC_TAG: list(pdata.pic_data[PIC_TAG]),
-            PIC_STAR: pdata.pic_data[PIC_STAR],
-            PIC_INFO: pdata.pic_data[PIC_INFO],
-            PIC_SID: pdata.pic_data[PIC_SID],
-            PIC_SERIES: pdata.pic_data[PIC_SERIES],
-            PIC_SPAGE: pdata.pic_data[PIC_SPAGE]
-        }
-        return self.collection.insert_one(insert_data)
+        series = pdata.get_series()
+        if not self.series_db.is_id_in_series(series[PIC_SID]):
+            self.series_db.save_series_data(sid=series[PIC_SID], series_title=series[PIC_SERIES])
+
+        return self.collection.insert_one(pdata.return_pic_data_noset())
 
     # IDから1画像のデータを読み込み
     def load_pic_data(self, id:str):
         db_data = self.collection.find_one(filter={PIC_ID:id})
-        pdata = PictureData(in_id=db_data[PIC_ID],
+        pdata = PictureData(in_id=db_data[PIC_ID].lstrip(ID_HEADER),
                             path=db_data[PIC_PATH],
                             title=db_data[PIC_TITLE],
-                            tags=set(db_data[PIC_TAG]),
+                            tags=set(db_data[PIC_TAG_LIST]),
                             star=db_data[PIC_STAR],
                             info=db_data[PIC_INFO],
-                            sid=db_data[PIC_SID],
                             series_title=db_data[PIC_SERIES],
                             series_page=db_data[PIC_SPAGE])
 
