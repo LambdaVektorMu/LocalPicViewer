@@ -12,6 +12,12 @@ salt = config.get('LocalPicViewer', 'salt')
 _hash = Hashids(min_length=ID_LENGTH, salt=salt)
 
 # === テストデータ ============================================
+# 何のシリーズでも無い
+no_series = SeriesData()
+# 何らかのシリーズの場合
+SERIES_TITLE2 = '楽しいテスト'
+series = SeriesData(SERIES_TITLE2)
+
 # 何も設定していない場合
 testdata_0 = PictureData()
 
@@ -39,7 +45,6 @@ TITLE2 = 'シリーズあり'
 TAGS2 = {'tag1', 'タグ2', '3'}
 STAR2 = 5
 INFO2 = 'とても楽しいテスト'
-SERIES_TITLE2 = '楽しいテスト'
 SERIES_PAGE2 = 1
 testdata_series = PictureData(path=PATH2,
                               title=TITLE2,

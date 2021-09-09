@@ -13,14 +13,14 @@ class DBSeriesData(object):
         self.collection = self.db.get_collection(COL_SDATA)
 
     def save_series_data(self, sid:str, series_title:str):
-        return self.collection.insert_one({PIC_ID:sid, PIC_SERIES:series_title})
+        return self.collection.insert_one({DB_ID:sid, PIC_SERIES:series_title})
 
     def load_series_data(self, sid:str):
-        db_data = self.collection.find_one(filter={PIC_ID:sid})
-        return {PIC_SID: db_data[PIC_ID], PIC_SERIES: db_data[PIC_SERIES]}
+        db_data = self.collection.find_one(filter={DB_ID:sid})
+        return {PIC_SID: db_data[DB_ID], PIC_SERIES: db_data[PIC_SERIES]}
 
     def is_id_in_series(self, sid:str) -> bool:
-        db_data = self.collection.find_one(filter={PIC_ID:sid})
+        db_data = self.collection.find_one(filter={DB_ID:sid})
         return db_data is not None
 
 class DBPicData(object):
@@ -41,8 +41,8 @@ class DBPicData(object):
 
     # IDから1画像のデータを読み込み
     def load_pic_data(self, id:str):
-        db_data = self.collection.find_one(filter={PIC_ID:id})
-        pdata = PictureData(in_id=db_data[PIC_ID].lstrip(ID_HEADER),
+        db_data = self.collection.find_one(filter={DB_ID:id})
+        pdata = PictureData(in_id=db_data[DB_ID].lstrip(ID_HEADER),
                             path=db_data[PIC_PATH],
                             title=db_data[PIC_TITLE],
                             tags=set(db_data[PIC_TAG_LIST]),
@@ -55,31 +55,31 @@ class DBPicData(object):
 
     # IDがDBに既に登録されているか確認
     def is_id_in_pic_data(self, id:str):
-        is_data = self.collection.find_one(filter={PIC_ID:id})
+        is_data = self.collection.find_one(filter={DB_ID:id})
         return is_data is not None
 
     # 画像データのタイトル更新
     def upload_pic_title(self, id:str, title:str):
-        filter_id = {PIC_ID:id}
+        filter_id = {DB_ID:id}
         update_title = {'$set': {PIC_TITLE:title}}
         return self.collection.update_one(filter_id, update_title)
 
     # 画像データの評価更新
     def upload_pic_star(self, id:str, star:int):
-        filter_id = {PIC_ID:id}
+        filter_id = {DB_ID:id}
         update_star = {'$set': {PIC_STAR:star}}
         return self.collection.update_one(filter_id, update_star)
 
     # 画像データのその他情報を更新
     def upload_pic_info(self, id:str, info:str):
         if len(info) <= INFO_LENGTH:
-            filter_id = {PIC_ID:id}
+            filter_id = {DB_ID:id}
             update_info = {'$set': {PIC_INFO:info}}
             return self.collection.update_one(filter_id, update_info)
 
     # 画像データのタグ情報を更新
     def upload_pic_tags(self, id:str, tags:set):
-        filter_id = {PIC_ID:id}
+        filter_id = {DB_ID:id}
         update_tags = {'$set': {PIC_TAG:list(tags)}}
         return self.collection.update_one(filter_id, update_tags)
 
