@@ -9,23 +9,24 @@ config = configparser.ConfigParser()
 config.read('config.ini')
 app = Flask( __name__ )
 app.secret_key = config.get('LocalPicViewer', 'secret_key')
-db_pdata = DBPicData(LPVDB, COL_PDATA)
+db_sdata = DBSeriesData()
+db_pdata = DBPicData()
 
 PREV = 'prev'
 NEXT = 'next'
+PIC_ID = 'pid'
 
 @app.route('/')
 @app.route('/top')
 def top():
     return render_template('top.html')
 
-@app.route('/viewer', methods=['POST', 'GET'])
+@app.route('/viewer', methods=['GET'])
 def view_pic():
     if request.method == 'GET':
         session[PIC_ID] = request.args.get('pic_id', '')
         p_data = db_pdata.load_pic_data(session[PIC_ID])
-        return render_template('viewer.html', pic_data=p_data.convert_tag_list())
-    #elif request.method == 'POST':
+        return render_template('viewer.html', pic_data=p_data.get_pic_data())
 
 @app.route('/upload_title', methods=['POST'])
 def upload_title():
@@ -38,7 +39,7 @@ def upload_title():
 def upload_star():
     if db_pdata.is_id_in_pic_data(session[PIC_ID]):
         input_star = request.form[PIC_STAR]
-        db_pdata.upload_pic_star(session[PIC_ID], input_star)
+        db_pdata.upload_pic_star(session[PIC_ID], int(input_star))
         return redirect(url_for('view_pic', pic_id=session[PIC_ID]))
 
 @app.route('/upload_info', methods=['POST'])

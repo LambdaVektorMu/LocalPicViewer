@@ -4,13 +4,16 @@
 from models.models import *
 import configparser
 from copy import deepcopy
+import pytest
 
 # === 初期設定 ===============================================
 config = configparser.ConfigParser()
 config.read('config.ini')
 salt = config.get('LocalPicViewer', 'salt')
-_hash = Hashids(min_length=ID_LENGTH, salt=salt)
+p_hash = Hashids(min_length=PID_LENGTH, salt=salt)
+s_hash = Hashids(min_length=SID_LENGTH, salt=salt)
 
+# +++ SeriesData ++++++++++++++++++++++++++++++++++++++++++++
 # === テストデータ ============================================
 # 何のシリーズでも無い
 no_series = SeriesData()
@@ -18,14 +21,75 @@ no_series = SeriesData()
 SERIES_TITLE2 = '楽しいテスト'
 series = SeriesData(SERIES_TITLE2)
 
+# === テストケース ============================================
+def test_generate_sid():
+    assert SeriesData.generate_sid() == SID_HEADER + SERIES_NONE_ID
+    sid = SeriesData.generate_sid(SERIES_TITLE2)
+    print('generated sid:', sid)
+    assert sid == series.series_data[DB_ID]
+    sid = SeriesData.generate_sid(SERIES_TITLE2, dupe=True)
+    print('generated sid:', sid)
+    assert sid != series.series_data[DB_ID]
+    with pytest.raises(ValueError): SeriesData.generate_sid(series_title='', dupe=True)
+
+def test_get_sid():
+    assert no_series.get_sid() == SID_HEADER + SERIES_NONE_ID
+    assert series.get_sid() == SeriesData.generate_sid(SERIES_TITLE2)
+
+def test_set_sid():
+    testdata_no = deepcopy(no_series)
+    assert testdata_no.get_sid() == no_series.get_sid()
+    testdata_no.set_sid(SeriesData.generate_sid(SERIES_TITLE2))
+    assert testdata_no.get_sid() != no_series.get_sid()
+    assert testdata_no.get_sid() == series.get_sid()
+    testdata_no.set_sid(SeriesData.generate_sid(SERIES_TITLE2, dupe=True))
+    assert testdata_no.get_sid() != no_series.get_sid()
+    assert testdata_no.get_sid() != series.get_sid()
+
+    testdata_series = deepcopy(series)
+    assert testdata_series.get_sid() == series.get_sid()
+    testdata_series.set_sid(SeriesData.generate_sid())
+    assert testdata_series.get_sid() == no_series.get_sid()
+    assert testdata_series.get_sid() != series.get_sid()
+
+    testdata_series = deepcopy(series)
+    assert testdata_series.get_sid() == series.get_sid()
+    test_id = SID_HEADER + '0'*(SID_LENGTH - 1)
+    testdata_series.set_sid(test_id)
+    assert testdata_series.get_sid() != test_id
+    assert testdata_series.get_sid() == series.get_sid()
+    test_id = SID_HEADER + '0'*(SID_LENGTH + 1)
+    testdata_series.set_sid(test_id)
+    assert testdata_series.get_sid() != test_id
+    assert testdata_series.get_sid() == series.get_sid()
+    test_id = '0'*(ALL_SID_LENGTH)
+    testdata_series.set_sid(test_id)
+    assert testdata_series.get_sid() != test_id
+    assert testdata_series.get_sid() == series.get_sid()
+
+def test_get_series_title():
+    assert no_series.get_series_title() == ''
+    assert series.get_series_title() == SERIES_TITLE2
+
+def test_set_series_title():
+    testdata_no = deepcopy(no_series)
+    assert testdata_no.get_series_title() == no_series.get_series_title()
+    testdata_no.set_series_title(SERIES_TITLE2)
+    assert testdata_no.get_series_title() != no_series.get_series_title()
+    assert testdata_no.get_series_title() == series.get_series_title()
+
+    testdata_series = deepcopy(series)
+    assert testdata_series.get_series_title() == series.get_series_title()
+    testdata_series.set_series_title('あああ')
+    assert testdata_series.get_series_title() != series.get_series_title()
+
+# +++ PictureData ++++++++++++++++++++++++++++++++++++++++++++
+# === テストデータ ============================================
 # 何も設定していない場合
 testdata_0 = PictureData()
 
 # シリーズの設定をしてないケース
 PATH1 = '/static/images/nas_pic/SobaCha/EgFQ_giU0AA05rd.jpg'
-seed_hash = ''.join(list(reversed(PATH1)))
-hashid = _hash.encode(int.from_bytes(seed_hash.encode(), 'big'))
-ID1 = hashid[:ID_LENGTH]
 TITLE1 = 'test_data_no'
 TAGS1 = {'tag'}
 STAR1 = 3
@@ -38,9 +102,6 @@ testdata_no_series = PictureData(path=PATH1,
 
 # シリーズの設定をしているケース
 PATH2 = '/static/images/nas_pic/SobaCha/EQspibEVAAAFiIT.jpg'
-seed_hash = ''.join(list(reversed(PATH2)))
-hashid = _hash.encode(int.from_bytes(seed_hash.encode(), 'big'))
-ID2 = hashid[:ID_LENGTH]
 TITLE2 = 'シリーズあり'
 TAGS2 = {'tag1', 'タグ2', '3'}
 STAR2 = 5
@@ -51,42 +112,46 @@ testdata_series = PictureData(path=PATH2,
                               tags=TAGS2,
                               star=STAR2,
                               info=INFO2,
-                              series_title=SERIES_TITLE2,
+                              series_id=series.get_sid(),
                               series_page=SERIES_PAGE2)
 
-# ID有 PATH無
-id1_path0 = PictureData(in_id=ID1)
-# ID有 PATH有
-id1_path2 = PictureData(in_id=ID1, path=PATH2)
-
 # === テストケース ============================================
-# ID有無×PATH有無の4通り
+def test_generate_pid():
+    assert PictureData.generate_pid() == PID_HEADER + PID_ZERO
+    pid = PictureData.generate_pid(PATH1)
+    print('generated pid:', pid)
+    assert pid == testdata_no_series.pic_data[DB_ID]
+    pid = PictureData.generate_pid(PATH1, dupe=True)
+    print('generated pid:', pid)
+    assert pid != testdata_no_series.pic_data[DB_ID]
+    with pytest.raises(ValueError): PictureData.generate_pid(in_path='', dupe=True)
+
 def test_get_id():
-    # ID無 PATH無
-    assert testdata_0.get_id() == ID_HEADER + ID_ZERO
-    # ID有 PATH無
-    assert id1_path0.get_id() != ID_HEADER + ID_ZERO
-    assert id1_path0.get_id() == ID_HEADER + ID1
-    # ID有 PATH有
-    assert id1_path2.get_id() != ID_HEADER + ID_ZERO
-    assert id1_path2.get_id() == ID_HEADER + ID1
-    assert id1_path2.get_id() != ID_HEADER + ID2
-    # ID無 PATH有
-    assert testdata_no_series.get_id() != ID_HEADER + ID_ZERO
-    assert testdata_no_series.get_id() == ID_HEADER + ID1
-    assert testdata_no_series.get_id() != ID_HEADER + ID2
-    assert testdata_series.get_id() != ID_HEADER + ID_ZERO
-    assert testdata_series.get_id() != ID_HEADER + ID1
-    assert testdata_series.get_id() == ID_HEADER + ID2
+    assert testdata_0.get_id() == PictureData.generate_pid()
+    assert testdata_no_series.get_id() == PictureData.generate_pid(PATH1)
+    assert testdata_series.get_id() == PictureData.generate_pid(PATH2)
 
 def test_set_id():
     var_data = deepcopy(testdata_no_series)
-    var_data.set_id(ID2)
-    assert var_data.get_id() == ID_HEADER + ID2
-    assert var_data.get_id() != testdata_no_series.get_id()
-    var_data.set_id(ID1+'0')
-    assert var_data.get_id() != ID_HEADER + ID1 + '0'
-    assert var_data.get_id() == ID_HEADER + ID2
+    var_data.set_id(PictureData.generate_pid(PATH2))
+    assert var_data.get_id() != PictureData.generate_pid(PATH1)
+    assert var_data.get_id() == PictureData.generate_pid(PATH2)
+    var_data.set_id(PictureData.generate_pid(PATH2, dupe=True))
+    assert var_data.get_id() != PictureData.generate_pid(PATH2)
+
+    var_data.set_id(PictureData.generate_pid(PATH2))
+    test_id = PID_HEADER + '0'*(PID_LENGTH - 1)
+    var_data.set_id(test_id)
+    assert var_data.get_id() != test_id
+    assert var_data.get_id() == PictureData.generate_pid(PATH2)
+    test_id = PID_HEADER + '0'*(PID_LENGTH + 1)
+    var_data.set_id(test_id)
+    assert var_data.get_id() != test_id
+    assert var_data.get_id() == PictureData.generate_pid(PATH2)
+    test_id = '0'*(ALL_PID_LENGTH)
+    var_data.set_id(test_id)
+    assert var_data.get_id() != test_id
+    assert var_data.get_id() == PictureData.generate_pid(PATH2)
 
 def test_get_path():
     assert testdata_no_series.get_path() == PATH1
@@ -99,12 +164,6 @@ def test_set_path():
     var_data = deepcopy(testdata_0)
     var_data.set_path(PATH2)
     assert var_data.get_path() == PATH2
-    assert var_data.get_id() == ID_HEADER + ID_ZERO
-    # ID有 PATH無にPATHを設定
-    var_data = deepcopy(id1_path0)
-    var_data.set_path(PATH2)
-    assert var_data.get_path() == PATH2
-    assert var_data.get_id() == ID_HEADER + ID1
     # ID無 PATH有にPATHを設定
     var_data = deepcopy(testdata_no_series)
     assert var_data.get_path() == PATH1
@@ -194,32 +253,25 @@ def test_set_info():
     assert var_data.get_info() == '1'*1000
 
 def test_get_series():
-    series = testdata_0.get_series()
-    assert series[PIC_SID] == SID_HEADER + SERIES_NONE_ID
-    assert series[PIC_SERIES] == ''
-    series = testdata_no_series.get_series()
-    assert series[PIC_SID] == SID_HEADER + SERIES_NONE_ID
-    assert series[PIC_SERIES] == ''
-    series = testdata_series.get_series()
-    assert series[PIC_SERIES] == SERIES_TITLE2
+    assert testdata_0.get_series() == SID_HEADER + SERIES_NONE_ID
+    assert testdata_no_series.get_series() == SID_HEADER + SERIES_NONE_ID
+    assert testdata_series.get_series() == SeriesData.generate_sid(SERIES_TITLE2)
 
 def test_set_series():
-    var_data = deepcopy(testdata_0)
-    var_data.set_series(SERIES_TITLE2)
-    series = var_data.get_series()
-    s_data = testdata_series.get_series()
-    assert series[PIC_SID] != SID_HEADER + SERIES_NONE_ID
-    assert series[PIC_SERIES] != ''
-    assert series[PIC_SID] == s_data[PIC_SID]
-    assert series[PIC_SERIES] == s_data[PIC_SERIES]
-    var_data.set_series('')
-    series = var_data.get_series()
-    assert series[PIC_SID] == SID_HEADER + SERIES_NONE_ID
-    assert series[PIC_SERIES] == ''
-    assert series[PIC_SID] != s_data[PIC_SID]
-    assert series[PIC_SERIES] != s_data[PIC_SERIES]
+    var_data = deepcopy(testdata_no_series)
+    var_data.set_series(SeriesData.generate_sid(TITLE2))
+    assert var_data.get_series() != SID_HEADER + SERIES_NONE_ID
+    assert var_data.get_series() == SeriesData.generate_sid(TITLE2)
+    var_data.set_series(SeriesData.generate_sid())
+    assert var_data.get_series() != SeriesData.generate_sid(TITLE2)
+    assert var_data.get_series() == SID_HEADER + SERIES_NONE_ID
 
-def test_():
-    d = testdata_series.return_pic_data_noset()
-    from pprint import pprint
-    pprint(d)
+    test_id = SID_HEADER + '0'*(SID_LENGTH - 1)
+    var_data.set_series(test_id)
+    assert var_data.get_series() == SID_HEADER + SERIES_NONE_ID
+    test_id = SID_HEADER + '0'*(SID_LENGTH + 1)
+    var_data.set_series(test_id)
+    assert var_data.get_series() == SID_HEADER + SERIES_NONE_ID
+    test_id = '0'*(ALL_SID_LENGTH)
+    var_data.set_series(test_id)
+    assert var_data.get_series() == SID_HEADER + SERIES_NONE_ID

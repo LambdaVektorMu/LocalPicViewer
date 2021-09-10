@@ -12,16 +12,37 @@ class DBSeriesData(object):
         self.db = self.client[LPVDB]
         self.collection = self.db.get_collection(COL_SDATA)
 
-    def save_series_data(self, sid:str, series_title:str):
-        return self.collection.insert_one({DB_ID:sid, PIC_SERIES:series_title})
+    def save_series_data(self, series:SeriesData):
+        return self.collection.insert_one({DB_ID:series.get_sid(), PIC_SERIES:series.get_series_title()})
 
-    def load_series_data(self, sid:str):
+    def load_series_data_by_id(self, sid:str) -> SeriesData:
         db_data = self.collection.find_one(filter={DB_ID:sid})
-        return {PIC_SID: db_data[DB_ID], PIC_SERIES: db_data[PIC_SERIES]}
+        return_data = SeriesData()
+        return_data.set_sid(db_data[DB_ID])
+        return_data.set_series_title(db_data[PIC_SERIES])
+
+        return return_data
+
+    def load_series_data_by_title(self, title:str) -> SeriesData:
+        db_data = self.collection.find_one(filter={PIC_SERIES:title})
+        return_data = SeriesData()
+        return_data.set_sid(db_data[DB_ID])
+        return_data.set_series_title(db_data[PIC_SERIES])
+
+        return return_data
 
     def is_id_in_series(self, sid:str) -> bool:
         db_data = self.collection.find_one(filter={DB_ID:sid})
         return db_data is not None
+
+    def is_title_in_series(self, title:str) -> bool:
+        db_data = self.collection.find_one(filter={PIC_SERIES:title})
+        return db_data is not None
+
+    def update_series_title(self, sid:str, in_title:str):
+        filter_id = {DB_ID: sid}
+        update_title = {'$set': {PIC_SERIES: in_title}}
+        return self.collection.update_one(filter=filter_id, update=update_title)
 
 class DBPicData(object):
     def __init__(self) -> None:
@@ -33,23 +54,19 @@ class DBPicData(object):
 
     # 1画像のデータを登録
     def save_pic_data(self, pdata:PictureData):
-        series = pdata.get_series()
-        if not self.series_db.is_id_in_series(series[PIC_SID]):
-            self.series_db.save_series_data(sid=series[PIC_SID], series_title=series[PIC_SERIES])
-
-        return self.collection.insert_one(pdata.return_pic_data_noset())
+        return self.collection.insert_one(pdata.get_pic_data_noset())
 
     # IDから1画像のデータを読み込み
     def load_pic_data(self, id:str):
         db_data = self.collection.find_one(filter={DB_ID:id})
-        pdata = PictureData(in_id=db_data[DB_ID].lstrip(ID_HEADER),
-                            path=db_data[PIC_PATH],
+        pdata = PictureData(path=db_data[PIC_PATH],
                             title=db_data[PIC_TITLE],
                             tags=set(db_data[PIC_TAG_LIST]),
                             star=db_data[PIC_STAR],
                             info=db_data[PIC_INFO],
-                            series_title=db_data[PIC_SERIES],
+                            series_id=db_data[PIC_SID],
                             series_page=db_data[PIC_SPAGE])
+        pdata.set_id(db_data[DB_ID])
 
         return pdata
 
@@ -78,12 +95,12 @@ class DBPicData(object):
             return self.collection.update_one(filter_id, update_info)
 
     # 画像データのタグ情報を更新
-    def upload_pic_tags(self, id:str, tags:set):
+    def upload_pic_tags(self, id:str, tags:Set[str]):
         filter_id = {DB_ID:id}
         update_tags = {'$set': {PIC_TAG:list(tags)}}
         return self.collection.update_one(filter_id, update_tags)
 
-    def search_db_by_tags(self, tags:set={}, sort:str=None):
+    def search_db_by_tags(self, tags:Set[str]={}, sort:str=None):
         tag_list = list(tags)
 
         if len(tag_list) == 0:
