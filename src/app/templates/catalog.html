@@ -8,7 +8,19 @@
     <body>
         <form action="/search_tag" method="POST">
             <input type="text" name="tags" placeholder="タグを入力" style="width:500px;" required>
-            <input type="submit" value="検索">
+            <select name='sort' required>
+                <option value="des_rating" selected>星 高い順</option>
+                <option value="asc_rating">星 低い順</option>
+                <option value="asc_title">タイトル 先頭から</option>
+                <option value="des_title">タイトル 後尾から</option>
+                <option value="acs_path">ファイルパス 昇順</option>
+                <option value="des_path">ファイルパス 降順</option>
+            </select>
+            <input type="submit" value="タグ検索">
         </form>
+
+        <form action="/search_series" method="POST"></form>
+        <input type="text" name="series_title" placeholder="シリーズ名を入力" style="width:500px;" required>
+        <input type="submit" value="シリーズ検索">
     </body>
 </html>
