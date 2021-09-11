@@ -26,7 +26,8 @@ def view_pic():
     if request.method == 'GET':
         session[PIC_ID] = request.args.get('pic_id', '')
         p_data = db_pdata.load_pic_data(session[PIC_ID])
-        return render_template('viewer.html', pic_data=p_data.get_pic_data())
+        series = db_sdata.load_series_data_by_id(p_data.get_series())
+        return render_template('viewer.html', pic_data=p_data.get_pic_data(), series_title=series.get_series_title())
 
 @app.route('/upload_title', methods=['POST'])
 def upload_title():
@@ -83,14 +84,14 @@ def add_tags():
 
         return redirect(url_for('view_pic', pic_id=session[PIC_ID]))
 
-@app.route('/catalog', methods=['POST', 'GET'])
+@app.route('/catalog', methods=['GET'])
 def catalog():
     return render_template('catalog.html')
 
 @app.route('/search_tag', methods=['POST'])
 def search_tags():
     input_tags = set(re.split(' |,', request.form[PIC_TAG])) - {''}
-
+    app.logger.debug(input_tags)
     picture_data = db_pdata.search_db_by_tags(input_tags)
     app.logger.debug(list(picture_data))  # debug:タグ検索結果
 

@@ -13,11 +13,13 @@ db_pdata = DBPicData()
 twitter: List[SeriesData] = []
 twitter.append(SeriesData('Twitter'))
 twitter.append(SeriesData('ツイッター'))
+db_sdata.save_series_data(SeriesData())
 db_sdata.save_series_data(twitter[0])
 db_sdata.save_series_data(twitter[1])
 
 f = open('sobacha_file_list.txt', 'r')
 
+db_pdata.save_pic_data(PictureData())
 for i in range(10):
     file = f.readline()
     file_path = ('/'+file.lstrip('./app')).strip()
