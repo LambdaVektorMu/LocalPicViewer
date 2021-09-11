@@ -5,6 +5,7 @@ from pymongo import MongoClient
 from models.models import *
 
 
+# シリーズ物の情報を扱うDB
 class DBSeriesData(object):
     def __init__(self) -> None:
         super().__init__()
@@ -44,6 +45,8 @@ class DBSeriesData(object):
         update_title = {'$set': {PIC_SERIES: in_title}}
         return self.collection.update_one(filter=filter_id, update=update_title)
 
+
+# 1枚の画像の情報を扱うDB
 class DBPicData(object):
     def __init__(self) -> None:
         super().__init__()
@@ -100,15 +103,15 @@ class DBPicData(object):
         update_tags = {'$set': {PIC_TAG:list(tags)}}
         return self.collection.update_one(filter_id, update_tags)
 
-    def search_db_by_tags(self, tags:Set[str]={}, sort:str=None):
+    def search_db_by_tags(self, tags:Set[str], sort:str=None):
         tag_list = list(tags)
 
         if len(tag_list) == 0:
             filter = None
         elif len(tag_list) == 1:
-            filter = {PIC_TAG: tag_list[0]}
+            filter = {PIC_TAG_LIST: tag_list[0]}
         else:
-            filter_tags = [{PIC_TAG: tag} for tag in tag_list]
+            filter_tags = [{PIC_TAG_LIST: tag} for tag in tag_list]
             filter = {'$and': filter_tags}
 
         return self.collection.find(filter=filter)

@@ -5,7 +5,7 @@ from copy import deepcopy
 from random import randint
 from hashids import Hashids
 import configparser
-from typing import Dict, Set, List
+from typing import Dict, Set, List, TypedDict
 
 # DB情報
 LPVDB = 'LocalPicViewer'    # DB名
@@ -45,6 +45,12 @@ salt = config.get('LocalPicViewer', 'salt')
 p_hash = Hashids(min_length=PID_LENGTH, salt=salt)
 s_hash = Hashids(min_length=SID_LENGTH, salt=salt)
 
+
+class SeriesDict(TypedDict):
+    _id: str
+    series_title: str
+
+
 class SeriesData(object):
 
     # シリーズ名からIDを生成する
@@ -66,11 +72,10 @@ class SeriesData(object):
         return SID_HEADER + sid
 
     def __init__(self, series_title:str=''):
-        self.series_data:Dict[str, str] = {}
         sid = self.generate_sid(series_title=series_title)
 
-        self.series_data[DB_ID] = sid
-        self.series_data[PIC_SERIES] = series_title
+        self.series_data: SeriesData = {DB_ID: sid,
+                                        PIC_SERIES: series_title}
 
     # === セッター/ゲッター ===================================
     def set_sid(self, in_sid:str):
@@ -85,6 +90,18 @@ class SeriesData(object):
 
     def get_series_title(self) -> str:
         return self.series_data[PIC_SERIES]
+
+
+class PictureDict(TypedDict):
+    _id: str
+    pic_path: str
+    title: str
+    tags: Set[str]
+    tags_list: List[str]
+    rating: int
+    information: str
+    series_id: str
+    series_page: int
 
 
 class PictureData(object):
@@ -120,18 +137,21 @@ class PictureData(object):
         id = self.generate_pid(in_path=path)
 
         # 情報を登録する
-        self.pic_data[DB_ID] = id
-        self.pic_data[PIC_PATH] = path
-        self.pic_data[PIC_TITLE] = title
-        self.pic_data[PIC_TAG] = tags
-        self.pic_data[PIC_TAG_LIST] = sorted(list(tags))
-        self.pic_data[PIC_STAR] = star
-        self.pic_data[PIC_INFO] = info
         if len(series_id) == ALL_SID_LENGTH and series_id[:len(SID_HEADER)] == SID_HEADER:
-            self.pic_data[PIC_SID] = series_id
+            setting_series_id = series_id
         else:
-            self.pic_data[PIC_SID] = SeriesData.generate_sid()
-        self.pic_data[PIC_SPAGE] = series_page
+            setting_series_id = SeriesData.generate_sid()
+
+        self.pic_data: PictureDict = {DB_ID: id,
+                                      PIC_PATH: path,
+                                      PIC_TITLE: title,
+                                      PIC_TAG: tags,
+                                      PIC_TAG_LIST: sorted(list(tags)),
+                                      PIC_STAR: star,
+                                      PIC_INFO: info,
+                                      PIC_SID: setting_series_id,
+                                      PIC_SPAGE: series_page
+        }
 
     def set_id(self, in_id:str):
         if len(in_id) == ALL_PID_LENGTH and in_id[:len(PID_HEADER)] == PID_HEADER:
@@ -152,7 +172,7 @@ class PictureData(object):
     def get_title(self) -> str:
         return self.pic_data[PIC_TITLE]
 
-    def set_tags(self, in_tags:set):
+    def set_tags(self, in_tags:Set[str]):
         self.pic_data[PIC_TAG] = in_tags
         self.pic_data[PIC_TAG_LIST] = sorted(list(in_tags))
 
@@ -187,10 +207,10 @@ class PictureData(object):
     def get_page(self) -> int:
         return self.pic_data[PIC_SPAGE]
 
-    def get_pic_data(self) -> Dict[any]:
+    def get_pic_data(self):
         return deepcopy(self.pic_data)
 
-    def get_pic_data_noset(self) -> Dict[any]:
-        return_data = deepcopy(self.pic_data)
+    def get_pic_data_noset(self):
+        return_data = dict(deepcopy(self.pic_data))
         del return_data[PIC_TAG]
         return return_data
