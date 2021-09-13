@@ -100,7 +100,7 @@ class DBPicData(object):
     # 画像データのタグ情報を更新
     def upload_pic_tags(self, id:str, tags:Set[str]):
         filter_id = {DB_ID:id}
-        update_tags = {'$set': {PIC_TAG:list(tags)}}
+        update_tags = {'$set': {PIC_TAG_LIST:list(tags)}}
         return self.collection.update_one(filter_id, update_tags)
 
     def search_db_by_tags(self, tags:Set[str], sort:str=None):
