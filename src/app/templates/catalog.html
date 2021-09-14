@@ -24,6 +24,7 @@
         <input type="submit" value="シリーズ検索">
         <hr>
         <h4>検索結果</h4>
+        <h5>検索方法:{{search_method}}</h5>
         {% for p_data in results_search %}
         <p> <a href="{{url_for('view_pic', pic_id=p_data._id)}}">{{p_data.title}}</a> 星:{{p_data.rating}}</p>
         {% endfor %}
