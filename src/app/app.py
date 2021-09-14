@@ -19,6 +19,7 @@ PREV = 'prev'
 CUR = 'cur'
 NEXT = 'next'
 PIC_ID = 'pid'
+PID_LIST = 'pid_list'
 
 class PidCursor(TypedDict):
     prev: str
@@ -33,9 +34,20 @@ def top():
 @app.route('/viewer', methods=['GET'])
 def view_pic():
     if request.method == 'GET':
+        # 
         pid = request.args.get('pic_id', '')
         p_data = db_pdata.load_pic_data(pid)
         series = db_sdata.load_series_data_by_id(p_data.get_series())
+
+        #
+        cookie_info = cookie_info = request.cookies.get(PID_LIST)
+        if cookie_info is not None:
+            load_info = json.loads(cookie_info)
+            cursor_list = load_info[PID_LIST]
+        cursor = None
+        if cursor_list is not None:
+            cursor = next(filter(lambda x: x[CUR]==pid, cursor_list), None)
+
         response = make_response(render_template('viewer.html',
                                                  pic_data=p_data.get_pic_data(),
                                                  series_title=series.get_series_title()
@@ -157,26 +169,26 @@ def create_pid_list(pid_list:List[str]) -> List[PidCursor]:
         pid_cursor: PidCursor = {PREV: pid_list[0],
                                  CUR: pid_list[0],
                                  NEXT: pid_list[0],
-        }
+                                 }
         return_list.append(pid_cursor)
 
     elif len(pid_list) == 2:
         pid_cursor: PidCursor = {PREV: pid_list[1],
                                  CUR: pid_list[0],
                                  NEXT: pid_list[1],
-        }
+                                 }
         return_list.append(pid_cursor)
         pid_cursor: PidCursor = {PREV: pid_list[0],
                                  CUR: pid_list[1],
                                  NEXT: pid_list[0],
-        }
+                                 }
         return_list.append(pid_cursor)
 
     elif len(pid_list) > 2:
         pid_cursor: PidCursor = {PREV: pid_list[-1],
                                  CUR: pid_list[0],
                                  NEXT: pid_list[1],
-        }
+                                 }
         return_list.append(pid_cursor)
 
         for i in range(1, len(pid_list) - 1):
@@ -189,7 +201,7 @@ def create_pid_list(pid_list:List[str]) -> List[PidCursor]:
         pid_cursor: PidCursor = {PREV: pid_list[-2],
                                  CUR: pid_list[-1],
                                  NEXT: pid_list[0],
-        }
+                                 }
         return_list.append(pid_cursor)
 
     return return_list
@@ -217,11 +229,18 @@ def search_tags():
     result_search = [pdata for pdata in picture_data]
     #app.logger.debug(result_search)  # debug
     # 検索結果からpidの双方向リストを作成する
-    pid_list = create_pid_list([pdata[DB_ID] for pdata in picture_data])
+    pid_list = create_pid_list([pdata[DB_ID] for pdata in result_search])
+    app.logger.debug(pid_list)  #debug
+    cookie_info = {PID_LIST: pid_list}
+    response = make_response(render_template('catalog.html',
+                                             search_method='タグ',
+                                             results_search=result_search)
+                            )
+    response.set_cookie(PID_LIST, value=json.dumps(cookie_info))
 
     #app.logger.debug(pid_list)  # debug:タグ検索結果
 
 
     #app.logger.debug(session[PID_LIST])  # debug:タグ検索結果
 
-    return render_template('catalog.html', results_search=result_search)
+    return response
