@@ -12,6 +12,11 @@
             <input type="text" name="title" placeholder="タイトル" style="width:500px;" required>
             <input type="submit" value="タイトル更新" >
         </form>
+        {% if pid_cursor != None %}
+            <a href="{{url_for('view_pic', pic_id=pid_cursor.prev)}}"> ＜{{title_cursor.prev}} |</a>
+            <a href="{{url_for('view_pic', pic_id=pid_cursor.next)}}"> |{{title_cursor.next}}＞ </a>
+        {% endif %}
+        <hr>
         <div id="parent">
             <!-- 画像表示部分 -->
             <div id="pic_viewer">
@@ -36,7 +41,22 @@
 
                 <!-- シリーズ -->
                 <h4>シリーズ</h4>
-                {{series_title}}
+                {% if pic_data.series_id != 'sid_0000000000000000' %}
+                    <p>
+                        <form action="/upload_page" method="POST"></form>
+                        {{series_title}}
+                        {% if series_page > 0 %}
+                        :{{series_page}}
+                        {% endif %}
+                            <input type="text" name="series_page" style="width:20px;" required>
+                            <input type="submit" value="シリーズページ更新">
+                        </form>
+                    </p>
+                {% endif %}
+                <form action="/upload_series" method="POST">
+                    <input type="text" name="series_title" placeholder="シリーズタイトル" style="width:250px;" required>
+                    <input type="submit" value="シリーズ更新" >
+                </form>
 
                 <!-- 好き度 -->
                 <h4>好き度</h4>

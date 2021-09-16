@@ -7,7 +7,7 @@
     </head>
     <body>
         <form action="/search_tag" method="POST">
-            <input type="text" name="tags" placeholder="タグを入力" style="width:500px;">
+            <input type="text" name="tags" placeholder="タグを入力" style="width:500px;">タグ
             <select name='sort' required>
                 <option value="des_rating" selected>星 高い順</option>
                 <option value="asc_rating">星 低い順</option>
@@ -16,17 +16,43 @@
                 <option value="acs_path">ファイルパス 昇順</option>
                 <option value="des_path">ファイルパス 降順</option>
             </select>
-            <input type="submit" value="タグ検索">
+            <br>
+            <input type="text" name="series_title" placeholder="シリーズ名を入力" style="width:500px;">シリーズ
+            <input type="submit" value="検索">
         </form>
-
-        <form action="/search_series" method="POST"></form>
-        <input type="text" name="series_title" placeholder="シリーズ名を入力" style="width:500px;" required>
-        <input type="submit" value="シリーズ検索">
         <hr>
+
         <h4>検索結果</h4>
         <h5>検索方法:{{search_method}}</h5>
-        {% for p_data in results_search %}
-        <p> <a href="{{url_for('view_pic', pic_id=p_data._id)}}">{{p_data.title}}</a> 星:{{p_data.rating}}</p>
-        {% endfor %}
+        <table class="table_layout">
+            <thead>
+                <tr>
+                    <th class="title">タイトル</th>
+                    <th class="star">星</th>
+                    <th class="series">シリーズ</th>
+                    <th>タグ</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p_data in results_search %}
+                    <tr>
+                        <td><a href="{{url_for('view_pic', pic_id=p_data._id)}}">{{p_data.title}}</a></td>
+                        <td>{{p_data.rating}}</td>
+                        <td>
+                            {% if p_data.series_id == 'sid_0000000000000000' %}
+                                -
+                            {% else %}
+                                {{p_data.series_title}}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% for tag in p_data.tags_list %}
+                                #{{tag}}
+                            {% endfor %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+            </tbody>
+        </table>
     </body>
 </html>

@@ -34,23 +34,29 @@ def top():
 @app.route('/viewer', methods=['GET'])
 def view_pic():
     if request.method == 'GET':
-        # 
+        # アドレスからpidを取得し、それを元にDBからデータを取得する
         pid = request.args.get('pic_id', '')
         p_data = db_pdata.load_pic_data(pid)
         series = db_sdata.load_series_data_by_id(p_data.get_series())
 
-        #
+        # cookieから自pidの前後のpidを取得する
         cookie_info = cookie_info = request.cookies.get(PID_LIST)
         if cookie_info is not None:
             load_info = json.loads(cookie_info)
             cursor_list = load_info[PID_LIST]
         cursor = None
+        title_cursor = {}
         if cursor_list is not None:
             cursor = next(filter(lambda x: x[CUR]==pid, cursor_list), None)
+            title_cursor[PREV] = db_pdata.get_title_by_id(cursor[PREV])
+            title_cursor[NEXT] = db_pdata.get_title_by_id(cursor[NEXT])
 
         response = make_response(render_template('viewer.html',
                                                  pic_data=p_data.get_pic_data(),
-                                                 series_title=series.get_series_title()
+                                                 series_title=series.get_series_title(),
+                                                 pid_cursor=cursor,
+                                                 title_cursor=title_cursor,
+                                                 series_page=p_data.get_page()
                                                 )
                                 )
         cookie_info = {PIC_ID: pid}
@@ -160,7 +166,66 @@ def add_tags():
 # idのリストを受け取って双方向リストを作成する
 @app.route('/catalog', methods=['GET'])
 def catalog():
-    return render_template('catalog.html')
+    tags_list = request.args.getlist('tag')
+    sort_order = request.args.get('sort')
+    series = request.args.get('series')
+
+    if tags_list is None:
+        tags:Set[str]= set()
+    else:
+        tags = set(tags_list)
+
+    if series is None:
+        search_method = 'タグ'
+
+        if sort_order == 'des_rating':
+            sort = (PIC_STAR, pymongo.DESCENDING)
+        elif sort_order == 'asc_rating':
+            sort = (PIC_STAR, pymongo.ASCENDING)
+        elif sort_order == 'asc_title':
+            sort = (PIC_TITLE, pymongo.ASCENDING)
+        elif sort_order == 'des_title':
+            sort = (PIC_TITLE, pymongo.DESCENDING)
+        elif sort_order == 'acs_path':
+            sort = (PIC_PATH, pymongo.ASCENDING)
+        elif sort_order == 'des_path':
+            sort = (PIC_PATH, pymongo.DESCENDING)
+        else:
+            return render_template('catalog.html')
+
+        picture_data = db_pdata.search_db_by_tags(tags).sort([sort])
+
+    else:
+        if db_sdata.is_title_in_series(series):
+            search_method = 'シリーズ'
+            sid = db_sdata.load_series_data_by_title(series).get_sid()
+            sort = (PIC_SPAGE, pymongo.ASCENDING)
+            picture_data = db_pdata.search_db_by_series(sid, tags=tags).sort([sort])
+        else:
+            return render_template('catalog.html')
+
+    # 検索結果を単純にリスト化する
+    result_search = [pdata for pdata in picture_data]
+
+    # 検索結果からpidの双方向リストを作成する
+    pid_list = create_pid_list([pdata[DB_ID] for pdata in result_search])
+    cookie_info = {PID_LIST: pid_list}
+
+    # シリーズ名を付加する
+    sid_list = sorted(list(set([pdata[PIC_SID] for pdata in result_search])))
+    series_dict = {}
+    for sid in sid_list:
+        series_dict[sid] = db_sdata.load_series_data_by_id(sid).get_series_title()
+    for p in result_search:
+        p[PIC_SERIES] = series_dict[p[PIC_SID]]
+
+    response = make_response(render_template('catalog.html',
+                                             search_method=search_method,
+                                             results_search=result_search)
+                            )
+    response.set_cookie(PID_LIST, value=json.dumps(cookie_info))
+
+    return response
 
 def create_pid_list(pid_list:List[str]) -> List[PidCursor]:
     return_list: List[PidCursor] = []
@@ -208,39 +273,21 @@ def create_pid_list(pid_list:List[str]) -> List[PidCursor]:
 
 @app.route('/search_tag', methods=['POST'])
 def search_tags():
-    input_tags = set(re.split(' |,', request.form[PIC_TAG])) - {''}
+    input_tags = list(set(re.split(' |,', request.form[PIC_TAG])) - {''})
+
+    if len(input_tags) == 0:
+        tags = None
+    elif len(input_tags) > 0:
+        tags = input_tags
 
     sort_order = request.form['sort']
-    if sort_order == 'des_rating':
-        sort = (PIC_STAR, pymongo.DESCENDING)
-    elif sort_order == 'asc_rating':
-        sort = (PIC_STAR, pymongo.ASCENDING)
-    elif sort_order == 'asc_title':
-        sort = (PIC_TITLE, pymongo.ASCENDING)
-    elif sort_order == 'des_title':
-        sort = (PIC_TITLE, pymongo.DESCENDING)
-    elif sort_order == 'acs_path':
-        sort = (PIC_PATH, pymongo.ASCENDING)
-    elif sort_order == 'des_path':
-        sort = (PIC_PATH, pymongo.DESCENDING)
 
-    picture_data = db_pdata.search_db_by_tags(input_tags).sort([sort])
-    # 検索結果を単純にリスト化する
-    result_search = [pdata for pdata in picture_data]
-    #app.logger.debug(result_search)  # debug
-    # 検索結果からpidの双方向リストを作成する
-    pid_list = create_pid_list([pdata[DB_ID] for pdata in result_search])
-    app.logger.debug(pid_list)  #debug
-    cookie_info = {PID_LIST: pid_list}
-    response = make_response(render_template('catalog.html',
-                                             search_method='タグ',
-                                             results_search=result_search)
-                            )
-    response.set_cookie(PID_LIST, value=json.dumps(cookie_info))
-
-    #app.logger.debug(pid_list)  # debug:タグ検索結果
+    input_series = request.form[PIC_SERIES]
+    if input_series == '':
+        series = None
+    else:
+        series = input_series
+        sort_order = None
 
 
-    #app.logger.debug(session[PID_LIST])  # debug:タグ検索結果
-
-    return response
+    return redirect(url_for('catalog',tag=tags, sort=sort_order, series=series))

@@ -103,7 +103,7 @@ class DBPicData(object):
         update_tags = {'$set': {PIC_TAG_LIST:list(tags)}}
         return self.collection.update_one(filter_id, update_tags)
 
-    def search_db_by_tags(self, tags:Set[str], sort:str=None):
+    def search_db_by_tags(self, tags:Set[str]):
         tag_list = list(tags)
 
         if len(tag_list) == 0:
@@ -115,3 +115,21 @@ class DBPicData(object):
             filter = {'$and': filter_tags}
 
         return self.collection.find(filter=filter)
+
+    def search_db_by_series(self, series:str, tags:Set[str]=set()):
+        tag_list = list(tags)
+
+        if len(tag_list) == 0:
+            filter = {PIC_SID: series}
+        elif len(tag_list) == 1:
+            filter = [{PIC_TAG_LIST: tag_list[0]}, {PIC_SID: series}]
+        else:
+            filter_tags = [{PIC_TAG_LIST: tag} for tag in tag_list]
+            filter_tags.append({PIC_SID: series})
+            filter = {'$and': filter_tags}
+
+        return self.collection.find(filter=filter)
+
+    def get_title_by_id(self, id:str) -> str:
+        db_data = self.collection.find_one(filter={DB_ID:id})
+        return db_data[PIC_TITLE]

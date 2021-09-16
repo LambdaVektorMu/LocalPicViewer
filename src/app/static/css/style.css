@@ -21,3 +21,39 @@ body {
         text-align: left;
     }
 }
+
+.table_layout {
+    table-layout: auto;
+    text-align: left;
+    width: 95vw;
+}
+
+.title {
+    width: 30vw;
+}
+
+.star {
+    width: 20px;
+}
+
+.series {
+    width: 25vw;
+}
+
+table {
+    border-collapse:collapse;
+    margin:0 auto;
+}
+td,th {
+    padding:10px;
+}
+th {
+    color:#fff;
+    background:#005ab3;
+}
+table tr:nth-child(odd) {
+    background:#dded73;
+}
+table tr:nth-child(even) {
+    background:#45e9a2;
+}
