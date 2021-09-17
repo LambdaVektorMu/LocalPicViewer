@@ -40,7 +40,7 @@ def view_pic():
         series = db_sdata.load_series_data_by_id(p_data.get_series())
 
         # cookieから自pidの前後のpidを取得する
-        cookie_info = cookie_info = request.cookies.get(PID_LIST)
+        cookie_info = request.cookies.get(PID_LIST)
         if cookie_info is not None:
             load_info = json.loads(cookie_info)
             cursor_list = load_info[PID_LIST]
@@ -48,8 +48,9 @@ def view_pic():
         title_cursor = {}
         if cursor_list is not None:
             cursor = next(filter(lambda x: x[CUR]==pid, cursor_list), None)
-            title_cursor[PREV] = db_pdata.get_title_by_id(cursor[PREV])
-            title_cursor[NEXT] = db_pdata.get_title_by_id(cursor[NEXT])
+            if cursor is not None:
+                title_cursor[PREV] = db_pdata.get_title_by_id(cursor[PREV])
+                title_cursor[NEXT] = db_pdata.get_title_by_id(cursor[NEXT])
 
         response = make_response(render_template('viewer.html',
                                                  pic_data=p_data.get_pic_data(),
@@ -63,8 +64,8 @@ def view_pic():
         response.set_cookie(PIC_ID, value=json.dumps(cookie_info))
         return response
 
-@app.route('/upload_title', methods=['POST'])
-def upload_title():
+@app.route('/update_title', methods=['POST'])
+def update_title():
     cookie_info = request.cookies.get(PIC_ID)
     if cookie_info is not None:
         load_info = json.loads(cookie_info)
@@ -72,15 +73,15 @@ def upload_title():
 
         if db_pdata.is_id_in_pic_data(pid):
             input_title = request.form[PIC_TITLE]
-            db_pdata.upload_pic_title(pid, input_title)
+            db_pdata.update_pic_title(pid, input_title)
 
             response = make_response(redirect(url_for('view_pic', pic_id=pid)))
             cookie_info = {PIC_ID: pid}
             response.set_cookie(PIC_ID, value=json.dumps(cookie_info))
             return response
 
-@app.route('/upload_rating', methods=['POST'])
-def upload_star():
+@app.route('/update_rating', methods=['POST'])
+def update_star():
     cookie_info = request.cookies.get(PIC_ID)
     if cookie_info is not None:
         load_info = json.loads(cookie_info)
@@ -88,15 +89,15 @@ def upload_star():
 
         if db_pdata.is_id_in_pic_data(pid):
             input_star = request.form[PIC_STAR]
-            db_pdata.upload_pic_star(pid, int(input_star))
+            db_pdata.update_pic_star(pid, int(input_star))
 
             response = make_response(redirect(url_for('view_pic', pic_id=pid)))
             cookie_info = {PIC_ID: pid}
             response.set_cookie(PIC_ID, value=json.dumps(cookie_info))
             return response
 
-@app.route('/upload_info', methods=['POST'])
-def upload_info():
+@app.route('/update_info', methods=['POST'])
+def update_info():
     cookie_info = request.cookies.get(PIC_ID)
     if cookie_info is not None:
         load_info = json.loads(cookie_info)
@@ -104,7 +105,7 @@ def upload_info():
 
         if db_pdata.is_id_in_pic_data(pid):
             input_info = request.form[PIC_INFO]
-            db_pdata.upload_pic_info(pid, input_info)
+            db_pdata.update_pic_info(pid, input_info)
 
             response = make_response(redirect(url_for('view_pic', pic_id=pid)))
             cookie_info = {PIC_ID: pid}
@@ -123,15 +124,13 @@ def delete_tags():
 
             # 選択したタグを削除したタグセットを作成する
             tag_list = request.form.getlist('delete_tag')
-            app.logger.debug(tag_list)  # debug
             set_del_tag = set(tag_list)
             new_tags = p_data.get_tags() - set_del_tag
-            app.logger.debug(new_tags)  # debug
 
             if len(list(new_tags)) == 0:
                 new_tags = TAG_ZERO
 
-            db_pdata.upload_pic_tags(pid, new_tags)
+            db_pdata.update_pic_tags(pid, new_tags)
 
             response = make_response(redirect(url_for('view_pic', pic_id=pid)))
             cookie_info = {PIC_ID: pid}
@@ -155,12 +154,58 @@ def add_tags():
             if len(list(new_tags)) == 0:
                 new_tags = TAG_ZERO
 
-            db_pdata.upload_pic_tags(pid, new_tags)
+            db_pdata.update_pic_tags(pid, new_tags)
 
             response = make_response(redirect(url_for('view_pic', pic_id=pid)))
             cookie_info = {PIC_ID: pid}
             response.set_cookie(PIC_ID, value=json.dumps(cookie_info))
             return response
+
+@app.route('/update_page', methods=['POST'])
+def update_page():
+    cookie_info = request.cookies.get(PIC_ID)
+    if cookie_info is not None:
+        load_info = json.loads(cookie_info)
+        pid = load_info[PIC_ID]
+        if db_pdata.is_id_in_pic_data(pid):
+            if db_pdata.is_sid_setting(pid):
+                input_page = int(request.form[PIC_SPAGE])
+                db_pdata.update_pic_page(pid, input_page)
+
+            response = make_response(redirect(url_for('view_pic', pic_id=pid)))
+            cookie_info = {PIC_ID: pid}
+            response.set_cookie(PIC_ID, value=json.dumps(cookie_info))
+            return response
+
+@app.route('/update_series', methods=['POST'])
+def update_series():
+    cookie_info = request.cookies.get(PIC_ID)
+    if cookie_info is not None:
+        load_info = json.loads(cookie_info)
+        pid = load_info[PIC_ID]
+        if db_pdata.is_id_in_pic_data(pid):
+            input_series = request.form[PIC_SERIES]
+            set_series_in_db(pid, input_series)
+
+            response = make_response(redirect(url_for('view_pic', pic_id=pid)))
+            cookie_info = {PIC_ID: pid}
+            response.set_cookie(PIC_ID, value=json.dumps(cookie_info))
+            return response
+
+def set_series_in_db(pid:str, title:str):
+    # 入力されたシリーズタイトルがシリーズDBに無かった時は新規登録
+    if not db_sdata.is_title_in_series(title):
+        new_series = SeriesData(title)
+        sid = new_series.get_sid()
+        while True:
+            if not db_sdata.is_id_in_series(sid):break
+            new_series.set_sid(SeriesData.generate_sid(title, True))
+            sid = new_series.get_sid()
+        db_sdata.save_series_data(new_series)
+    else:
+        sid = db_sdata.load_series_data_by_title(title).get_sid()
+
+    return db_pdata.update_pic_series(pid, sid)
 
 # === タグやシリーズを使った検索結果一覧の表示用 ==========================
 # idのリストを受け取って双方向リストを作成する

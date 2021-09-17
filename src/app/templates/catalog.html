@@ -42,12 +42,12 @@
                             {% if p_data.series_id == 'sid_0000000000000000' %}
                                 -
                             {% else %}
-                                {{p_data.series_title}}
+                                <a href="{{url_for('catalog', series=p_data.series_title)}}">{{p_data.series_title}}</a>
                             {% endif %}
                         </td>
                         <td>
                             {% for tag in p_data.tags_list %}
-                                #{{tag}}
+                                <a href="{{url_for('catalog', tag=tag, sort='des_rating')}}">#{{tag}}</a>
                             {% endfor %}
                         </td>
                     </tr>

@@ -6,9 +6,25 @@
         <link href="/static/css/style.css" rel="stylesheet" type="text/css" />
     </head>
     <body>
+        <form action="/search_tag" method="POST">
+            <input type="text" name="tags" placeholder="タグを入力" style="width:500px;">タグ
+            <select name='sort' required>
+                <option value="des_rating" selected>星 高い順</option>
+                <option value="asc_rating">星 低い順</option>
+                <option value="asc_title">タイトル 先頭から</option>
+                <option value="des_title">タイトル 後尾から</option>
+                <option value="acs_path">ファイルパス 昇順</option>
+                <option value="des_path">ファイルパス 降順</option>
+            </select>
+            <br>
+            <input type="text" name="series_title" placeholder="シリーズ名を入力" style="width:500px;">シリーズ
+            <input type="submit" value="検索">
+        </form>
+        <hr>
+
         <!-- 画像のタイトル -->
         <h3>タイトル:{{pic_data.title}}</h3>
-        <form action="/upload_title" method="POST">
+        <form action="/update_title" method="POST">
             <input type="text" name="title" placeholder="タイトル" style="width:500px;" required>
             <input type="submit" value="タイトル更新" >
         </form>
@@ -29,7 +45,7 @@
                 <h4>タグ</h4>
                 {% for tag in pic_data.tags %}
                 <input type="checkbox" name="delete_tag" form="delete_tag" value="{{tag}}">
-                {{tag}}<br>
+                <a href="{{url_for('catalog', tag=tag, sort='des_rating')}}">{{tag}}</a><br>
                 {% endfor %}
                 <form action="/add_tags" method="POST">
                     <input type="text" name="tags" placeholder="タグ" style="width:200px;" required>
@@ -43,17 +59,17 @@
                 <h4>シリーズ</h4>
                 {% if pic_data.series_id != 'sid_0000000000000000' %}
                     <p>
-                        <form action="/upload_page" method="POST"></form>
-                        {{series_title}}
-                        {% if series_page > 0 %}
-                        :{{series_page}}
-                        {% endif %}
-                            <input type="text" name="series_page" style="width:20px;" required>
-                            <input type="submit" value="シリーズページ更新">
+                        <form action="/update_page" method="POST">
+                            <a href="{{url_for('catalog', series=series_title)}}">{{series_title}}</a>
+                            {% if series_page >= 0 %}
+                                :{{series_page}}
+                            {% endif %}
+                                <input type="text" name="series_page" style="width:20px;" required>
+                                <input type="submit" value="シリーズページ更新">
                         </form>
                     </p>
                 {% endif %}
-                <form action="/upload_series" method="POST">
+                <form action="/update_series" method="POST">
                     <input type="text" name="series_title" placeholder="シリーズタイトル" style="width:250px;" required>
                     <input type="submit" value="シリーズ更新" >
                 </form>
@@ -61,7 +77,7 @@
                 <!-- 好き度 -->
                 <h4>好き度</h4>
                 ☆:{{pic_data.rating}}
-                <form action="/upload_rating" method="POST">
+                <form action="/update_rating" method="POST">
                     <select name="rating" required>
                         <option value="">-</option>
                         <option value=0>0</option>
@@ -77,7 +93,7 @@
                 <!-- その他テキスト情報 -->
                 <h4>メモ</h4>
                 <pre>{{pic_data.information}}</pre>
-                <form action="/upload_info" method="POST">
+                <form action="/update_info" method="POST">
                     <textarea name="information" required></textarea>
                     <input type="submit" value="その他情報更新">
                 </form>

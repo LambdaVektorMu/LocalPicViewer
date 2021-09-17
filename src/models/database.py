@@ -79,30 +79,31 @@ class DBPicData(object):
         return is_data is not None
 
     # 画像データのタイトル更新
-    def upload_pic_title(self, id:str, title:str):
+    def update_pic_title(self, id:str, title:str):
         filter_id = {DB_ID:id}
         update_title = {'$set': {PIC_TITLE:title}}
         return self.collection.update_one(filter_id, update_title)
 
     # 画像データの評価更新
-    def upload_pic_star(self, id:str, star:int):
+    def update_pic_star(self, id:str, star:int):
         filter_id = {DB_ID:id}
         update_star = {'$set': {PIC_STAR:star}}
         return self.collection.update_one(filter_id, update_star)
 
     # 画像データのその他情報を更新
-    def upload_pic_info(self, id:str, info:str):
+    def update_pic_info(self, id:str, info:str):
         if len(info) <= INFO_LENGTH:
             filter_id = {DB_ID:id}
             update_info = {'$set': {PIC_INFO:info}}
             return self.collection.update_one(filter_id, update_info)
 
     # 画像データのタグ情報を更新
-    def upload_pic_tags(self, id:str, tags:Set[str]):
+    def update_pic_tags(self, id:str, tags:Set[str]):
         filter_id = {DB_ID:id}
         update_tags = {'$set': {PIC_TAG_LIST:list(tags)}}
         return self.collection.update_one(filter_id, update_tags)
 
+    # タグ（複数）を使ってデータを検索
     def search_db_by_tags(self, tags:Set[str]):
         tag_list = list(tags)
 
@@ -116,6 +117,7 @@ class DBPicData(object):
 
         return self.collection.find(filter=filter)
 
+    # シリーズ名（とタグ）を使ってデータを検索
     def search_db_by_series(self, series:str, tags:Set[str]=set()):
         tag_list = list(tags)
 
@@ -130,6 +132,24 @@ class DBPicData(object):
 
         return self.collection.find(filter=filter)
 
+    # pidと紐づくタイトルを検索
     def get_title_by_id(self, id:str) -> str:
         db_data = self.collection.find_one(filter={DB_ID:id})
         return db_data[PIC_TITLE]
+
+    # pidにシリーズが設定されているか確認
+    def is_sid_setting(self, id:str):
+        is_data = self.collection.find_one(filter={DB_ID:id})
+        return is_data[PIC_SID] != (SID_HEADER + SERIES_NONE_ID)
+
+    # 各pidに新しいページを割り振る
+    def update_pic_page(self, id:str, page:int):
+        if page >= 0:
+            filter_id = {DB_ID:id}
+            update_page = {'$set': {PIC_SPAGE:page}}
+            return self.collection.update_one(filter_id, update_page)
+
+    def update_pic_series(self, pid:str, sid:str):
+        filter_id = {DB_ID:pid}
+        update_series = {'$set': {PIC_SID:sid}}
+        return self.collection.update_one(filter_id, update_series)
