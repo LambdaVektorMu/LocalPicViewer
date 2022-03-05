@@ -14,4 +14,3 @@ find ./app/static/images/nas_pic/SobaCha/ -type f
 
 - ファイル一覧を画像情報だけの一覧にする
 - ファイル一覧からDBに仮登録する
-- トップページを検索画面にする

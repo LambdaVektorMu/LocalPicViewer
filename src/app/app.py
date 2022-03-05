@@ -20,6 +20,7 @@ CUR = 'cur'
 NEXT = 'next'
 PIC_ID = 'pid'
 PID_LIST = 'pid_list'
+JSON_TEMP = './app/static/cursor_temp.json'
 
 class PidCursor(TypedDict):
     prev: str
@@ -40,10 +41,10 @@ def view_pic():
         series = db_sdata.load_series_data_by_id(p_data.get_series())
 
         # cookieから自pidの前後のpidを取得する
-        cookie_info = request.cookies.get(PID_LIST)
-        if cookie_info is not None:
-            load_info = json.loads(cookie_info)
-            cursor_list = load_info[PID_LIST]
+        # cookie_info = request.cookies.get(PID_LIST)
+        f = open(JSON_TEMP, 'r')
+        if f is not None:
+            cursor_list = json.load(f)
         cursor = None
         title_cursor = {}
         if cursor_list is not None:
@@ -254,7 +255,10 @@ def catalog():
 
     # 検索結果からpidの双方向リストを作成する
     pid_list = create_pid_list([pdata[DB_ID] for pdata in result_search])
-    cookie_info = {PID_LIST: pid_list}
+    temp_cursor_file = open(JSON_TEMP, 'w')
+    json.dump(pid_list, temp_cursor_file)
+    temp_cursor_file.close()
+    # cookie_info = {PID_LIST: pid_list}
 
     # シリーズ名を付加する
     sid_list = sorted(list(set([pdata[PIC_SID] for pdata in result_search])))
@@ -268,7 +272,7 @@ def catalog():
                                              search_method=search_method,
                                              results_search=result_search)
                             )
-    response.set_cookie(PID_LIST, value=json.dumps(cookie_info))
+    #response.set_cookie(PID_LIST, value=json.dumps(cookie_info))
 
     return response
 
